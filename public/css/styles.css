@@ -1,0 +1,48 @@
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* Animación suave al cambiar de pantallas */
+.fade-in {
+    animation: fadeIn ease 0.4s;
+    -webkit-animation: fadeIn ease 0.4s;
+    -moz-animation: fadeIn ease 0.4s;
+    -o-animation: fadeIn ease 0.4s;
+    -ms-animation: fadeIn ease 0.4s;
+}
+
+@keyframes fadeIn {
+    0% {opacity:0; transform: translateY(10px);}
+    100% {opacity:1; transform: translateY(0);}
+}
+
+/* Estilo del botón flotante de la cámara */
+.btn-flotante {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 65px;
+    height: 65px;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    border: 3px solid white;
+}
+
+.btn-flotante:hover {
+    transform: scale(1.1) rotate(10deg);
+    box-shadow: 0 1rem 3rem rgba(0,0,0,.175)!important;
+}
+
+/* Redondear bordes de los popups del mapa */
+.leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.leaflet-popup-content b {
+    color: #198754;
+}

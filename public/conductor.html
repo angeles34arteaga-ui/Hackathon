@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Conductor - Optimizador de Rutas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f1f5f9; color: #334155; }
+        .custom-marker { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .bin-icon { font-size: 26px; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); }
+        .route-number { background: #ef4444; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 13px; font-weight: bold; position: absolute; top: -12px; right: -12px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);}
+        .fill-label { background: white; color: #0f172a; font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 10px; margin-top: 4px; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .dropdown-menu { display: none; transform-origin: top right; transition: all 0.2s; }
+        .dropdown-menu.active { display: block; animation: slideIn 0.2s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        /* Scrollbar personalizado para las alertas */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; rounded: 10px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="antialiased flex flex-col min-h-screen">
+
+    <header class="bg-blue-900 shadow-md sticky top-0 z-[2000]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center cursor-pointer" onclick="location.reload()">
+                    <i class="fas fa-truck text-green-400 text-2xl mr-3"></i>
+                    <span class="font-bold text-xl tracking-tight text-white">Eco<span class="text-green-400">Rutas</span></span>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-bold text-white">Angeles</p>
+                        <p class="text-xs text-blue-300">Unidad-042 (Activa)</p>
+                    </div>
+                    
+                    <div class="relative">
+                        <button id="userMenuBtn" class="flex items-center focus:outline-none rounded-full border-2 border-blue-400 hover:border-white transition">
+                            <img src="https://i.pravatar.cc/150?img=47" alt="Perfil" class="w-10 h-10 rounded-full">
+                        </button>
+                        <div id="dropdownMenu" class="dropdown-menu absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-[3000]">
+                            <div class="px-4 py-3 border-b border-gray-100 mb-1">
+                                <p class="text-sm text-gray-800 font-bold">Angeles</p>
+                                <p class="text-xs text-gray-500">angeles@ecociudad.gob</p>
+                            </div>
+                            <button onclick="alert('Accediendo a la telemetría del Camión Unidad-042.\nCombustible: 85%\nEstado del motor: Óptimo.')" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                <i class="fas fa-truck-cog w-6"></i> Configurar Vehículo
+                            </button>
+                            <button onclick="cambiarCuenta()" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                <i class="fas fa-users w-6"></i> Cambiar de Cuenta
+                            </button>
+                            <div class="border-t border-gray-100 my-1"></div>
+                            <button onclick="if(confirm('¿Cerrar sesión de turno actual?')) window.location.href = 'index.html#login';" class="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition font-medium">
+                                <i class="fas fa-sign-out-alt w-6"></i> Cerrar sesión
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <section class="lg:col-span-1 space-y-4 order-2 lg:order-1">
+                
+                <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-microchip text-blue-500 mr-2"></i> Optimización TSP (Backend)</h2>
+                    
+                    <div id="btnContainer" class="flex space-x-2 mb-4">
+                        <button id="btnGenerarRuta" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow">
+                            <i class="fas fa-play mr-2"></i> Calcular Ruta
+                        </button>
+                        <button id="btnOtrasRutas" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-4 rounded-xl transition border border-gray-300" title="Recalcular con datos nuevos">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+
+                    <div id="aiStats" class="grid grid-cols-2 gap-4 text-center hidden">
+                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                            <p class="text-xs text-gray-500 mb-1">Paradas a realizar</p>
+                            <p id="totalStops" class="text-2xl font-bold text-gray-800">--</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                            <p class="text-xs text-gray-500 mb-1">Distancia Total</p>
+                            <p id="totalDist" class="text-2xl font-bold text-blue-600">-- km</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="nextStopCard" class="bg-white rounded-2xl border-t-4 border-blue-500 shadow-md hidden overflow-hidden">
+                    <div class="p-5">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider">Destino Actual</h3>
+                            <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">Parada <span id="currentStopNum">1</span></span>
+                        </div>
+                        
+                        <div class="mb-5">
+                            <p class="text-lg font-bold text-gray-800 mb-1"><i class="fas fa-map-marker-alt text-red-500 mr-2"></i>Contenedor <span id="currentBinId" class="font-mono text-blue-600">C-000</span></p>
+                            <p class="text-gray-600 text-sm"><i class="fas fa-trash-alt mr-2 text-gray-400"></i>Estado: <span id="currentBinFill" class="text-red-500 font-bold">0%</span> Lleno</p>
+                        </div>
+                        
+                        <div class="flex flex-col space-y-3">
+                            <button id="btnConfirmar" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl text-lg transition shadow-md flex items-center justify-center">
+                                <i class="fas fa-check-circle mr-2"></i> Marcar como Recogido
+                            </button>
+                            
+                            <div class="flex space-x-2">
+                                <button id="btnIncidencia" class="flex-1 bg-orange-100 hover:bg-orange-200 text-orange-700 font-semibold py-2 rounded-lg transition border border-orange-200 text-sm">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i> Incidencia
+                                </button>
+                                <button id="btnPausar" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 rounded-lg transition border border-gray-200 text-sm">
+                                    <i class="fas fa-pause mr-1"></i> Pausar
+                                </button>
+                                <button id="btnAnterior" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 rounded-lg transition border border-gray-200 disabled:opacity-50" title="Retroceder">
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border-t-4 border-orange-500 shadow-md overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-orange-50">
+                        <h3 class="text-orange-800 font-bold text-sm"><i class="fas fa-bullhorn mr-2"></i> Alertas de Ciudadanos</h3>
+                        <span id="badge-alertas" class="bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div id="lista-alertas-conductor" class="p-4 space-y-3 max-h-56 overflow-y-auto bg-white">
+                        </div>
+                </div>
+
+            </section>
+
+            <section class="lg:col-span-2 order-1 lg:order-2 flex flex-col min-h-[500px]">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 flex-1 overflow-hidden relative">
+                    <div id="map" class="w-full h-full z-0"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div id="modal-foto-alerta" class="hidden fixed inset-0 bg-black/90 z-[5000] flex items-center justify-center p-4">
+        <button onclick="cerrarModal('modal-foto-alerta')" class="absolute top-6 right-6 text-white hover:text-red-500 transition text-3xl"><i class="fas fa-times"></i></button>
+        <img id="foto-ampliada-alerta" src="" class="max-w-full max-h-[90vh] rounded-lg shadow-2xl border border-gray-700">
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // --- LÓGICA DE INTERFAZ BÁSICA ---
+        const menuBtn = document.getElementById('userMenuBtn');
+        const menu = document.getElementById('dropdownMenu');
+        menuBtn.addEventListener('click', (e) => { e.stopPropagation(); menu.classList.toggle('active'); });
+        document.addEventListener('click', () => menu.classList.remove('active'));
+
+        function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function cambiarCuenta() {
+            let email = prompt("Ingrese el correo de la cuenta a la que desea cambiar:");
+            if(email) document.querySelector('.text-sm.font-bold.text-white').innerText = "Nuevo Chofer";
+        }
+
+        document.getElementById('btnIncidencia').addEventListener('click', () => {
+            let motivo = prompt("Reporte de Incidencia. Escriba el problema:");
+            if(motivo) {
+                alert(`Incidencia registrada. El sistema de IA recalculará la ruta.`);
+                document.getElementById('btnConfirmar').click();
+            }
+        });
+
+        document.getElementById('btnPausar').addEventListener('click', function() {
+            if (this.innerText.includes("Pausar")) {
+                this.innerHTML = '<i class="fas fa-play mr-1"></i> Reanudar';
+                this.classList.replace('bg-gray-100', 'bg-yellow-100');
+                this.classList.replace('text-gray-700', 'text-yellow-700');
+            } else {
+                this.innerHTML = '<i class="fas fa-pause mr-1"></i> Pausar';
+                this.classList.replace('bg-yellow-100', 'bg-gray-100');
+                this.classList.replace('text-yellow-700', 'text-gray-700');
+            }
+        });
+
+        // --- LÓGICA DEL MAPA Y OPTIMIZACIÓN TSP ---
+        const startPoint = [-1.6709, -78.6471]; 
+        let map = L.map('map', { zoomControl: false }).setView(startPoint, 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+        let rutaPolyline;
+        let rutaOptimizada = [];
+        let currentStopIndex = 0;
+        let markers = [];
+        let truckMarker;
+
+        const generateSensorData = () => {
+            const data = [];
+            for (let i = 0; i < 20; i++) {
+                data.push({
+                    id: `C-${Math.floor(1000 + Math.random() * 9000)}`,
+                    lat: startPoint[0] + (Math.random() - 0.5) * 0.04,
+                    lng: startPoint[1] + (Math.random() - 0.5) * 0.04,
+                    fill: Math.floor(Math.random() * 100)
+                });
+            }
+            return data;
+        };
+        let todosLosContenedores = generateSensorData();
+
+        const btnGenerar = document.getElementById('btnGenerarRuta');
+        const btnOtrasRutas = document.getElementById('btnOtrasRutas');
+
+        async function iniciarOptimización(recalcular = false) {
+            if (recalcular) todosLosContenedores = generateSensorData();
+            btnGenerar.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Consultando a la IA...';
+            
+            const paradasNecesarias = todosLosContenedores.filter(c => c.fill >= 70);
+
+            try {
+                const response = await fetch('http://localhost:5000/api/optimizar-ruta', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        origen: { lat: startPoint[0], lng: startPoint[1] },
+                        contenedores: paradasNecesarias
+                    })
+                });
+
+                if (!response.ok) throw new Error("Error en el servidor");
+
+                const resultado = await response.json();
+                
+                rutaOptimizada = resultado.ruta_ordenada;
+                currentStopIndex = 0;
+                
+                document.getElementById('totalStops').innerText = rutaOptimizada.length;
+                document.getElementById('totalDist').innerText = resultado.distancia_total_km;
+                
+                dibujarRuta();
+                actualizarPanelSiguienteParada();
+
+                btnGenerar.style.display = 'none';
+                btnOtrasRutas.classList.remove('hidden');
+                document.getElementById('aiStats').classList.remove('hidden');
+                document.getElementById('nextStopCard').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error:", error);
+                alert("⚠️ No se pudo conectar con el servidor Python. Verifica que app.py esté ejecutándose en el puerto 5000.");
+                btnGenerar.innerHTML = '<i class="fas fa-play mr-2"></i> Reintentar';
+            }
+        }
+
+        btnGenerar.addEventListener('click', () => iniciarOptimización(false));
+        btnOtrasRutas.addEventListener('click', () => iniciarOptimización(true));
+
+        function dibujarRuta() {
+            if(rutaPolyline) map.removeLayer(rutaPolyline);
+            if(truckMarker) map.removeLayer(truckMarker);
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            const truckIcon = L.divIcon({ className: 'custom-marker', html: `<div style="background-color: #2563eb; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(0,0,0,0.3);"><i class="fas fa-truck text-white text-sm"></i></div>` });
+            truckMarker = L.marker(startPoint, {icon: truckIcon}).addTo(map);
+
+            let routeCoords = [startPoint];
+
+            rutaOptimizada.forEach((stop, index) => {
+                routeCoords.push([stop.lat, stop.lng]);
+                
+                const isCompleted = index < currentStopIndex;
+                const color = isCompleted ? '#22c55e' : (stop.fill > 85 ? '#ef4444' : '#f59e0b');
+                const iconHtml = isCompleted ? 
+                    `<i class="fas fa-check-circle bin-icon" style="color: ${color}"></i>` : 
+                    `<div style="position:relative;">
+                        <i class="fas fa-trash bin-icon" style="color: ${color}"></i>
+                        <div class="route-number">${index + 1}</div>
+                        <div class="fill-label">${stop.fill}%</div>
+                    </div>`;
+
+                const icon = L.divIcon({ className: 'custom-marker', html: iconHtml, iconSize: [50, 60] });
+                let marker = L.marker([stop.lat, stop.lng], {icon: icon}).addTo(map);
+                markers.push(marker);
+            });
+
+            rutaPolyline = L.polyline(routeCoords, {color: '#3b82f6', weight: 5, opacity: 0.8}).addTo(map);
+            map.fitBounds(rutaPolyline.getBounds(), {padding: [50, 50]});
+        }
+
+        function actualizarPanelSiguienteParada() {
+            document.getElementById('btnAnterior').disabled = currentStopIndex === 0;
+
+            if (currentStopIndex < rutaOptimizada.length) {
+                const parada = rutaOptimizada[currentStopIndex];
+                document.getElementById('currentStopNum').innerText = currentStopIndex + 1;
+                document.getElementById('currentBinId').innerText = parada.id;
+                document.getElementById('currentBinFill').innerText = `${parada.fill}%`;
+                
+                map.flyTo([parada.lat, parada.lng], 16, { duration: 1.5 });
+            } else {
+                document.getElementById('nextStopCard').innerHTML = `
+                    <div class="p-6 text-center bg-green-50">
+                        <i class="fas fa-flag-checkered text-5xl text-green-500 mb-4"></i>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">Ruta Completada</h3>
+                        <p class="text-gray-600">Buen trabajo. Regrese a la base.</p>
+                    </div>`;
+            }
+        }
+
+        document.getElementById('btnConfirmar').addEventListener('click', () => {
+            if (currentStopIndex < rutaOptimizada.length) {
+                currentStopIndex++;
+                dibujarRuta();
+                actualizarPanelSiguienteParada();
+            }
+        });
+
+        document.getElementById('btnAnterior').addEventListener('click', () => {
+            if (currentStopIndex > 0) {
+                currentStopIndex--;
+                dibujarRuta();
+                actualizarPanelSiguienteParada();
+            }
+        });
+
+        // --- NUEVO: LÓGICA DE ALERTAS / REPORTES CIUDADANOS ---
+        function cargarAlertasCiudadanas() {
+            const contenedorAlertas = document.getElementById('lista-alertas-conductor');
+            const badgeAlertas = document.getElementById('badge-alertas');
+            
+            // Obtener reportes del localStorage (compartido con Ciudadano y Admin)
+            let reportesDB = JSON.parse(localStorage.getItem('ecoCiudadReportes')) || [];
+            
+            // El conductor solo necesita ver los que están "Pendientes"
+            let reportesPendientes = reportesDB.filter(r => r.estado === 'Pendiente');
+            
+            badgeAlertas.innerText = reportesPendientes.length;
+
+            if (reportesPendientes.length === 0) {
+                contenedorAlertas.innerHTML = `
+                    <div class="text-center py-4 text-gray-400">
+                        <i class="fas fa-check-circle text-2xl mb-2 text-green-400"></i>
+                        <p class="text-xs">No hay alertas activas en las rutas.</p>
+                    </div>`;
+                return;
+            }
+
+            contenedorAlertas.innerHTML = ''; // Limpiar
+            
+            reportesPendientes.forEach(r => {
+                let imgHtml = r.imagen ? 
+                    `<img src="${r.imagen}" onclick="ampliarFotoAlerta('${r.imagen}')" class="w-12 h-12 rounded object-cover border border-orange-200 cursor-pointer hover:opacity-80 transition" title="Ver detalle">` : 
+                    `<div class="w-12 h-12 bg-orange-100 rounded flex items-center justify-center text-orange-300 border border-orange-200"><i class="fas fa-image"></i></div>`;
+                
+                contenedorAlertas.innerHTML += `
+                    <div class="flex items-start gap-3 bg-white p-3 rounded-xl border border-orange-100 shadow-sm hover:shadow transition">
+                        ${imgHtml}
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <p class="text-xs font-bold text-gray-800 line-clamp-1"><i class="fas fa-map-marker-alt text-red-500 mr-1"></i>${r.ubicacion}</p>
+                                <span class="text-[10px] text-gray-400 whitespace-nowrap">${r.fecha}</span>
+                            </div>
+                            <p class="text-xs text-gray-600 line-clamp-2 mt-1 italic">"${r.detalle}"</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function ampliarFotoAlerta(imgSrc) {
+            document.getElementById('foto-ampliada-alerta').src = imgSrc;
+            document.getElementById('modal-foto-alerta').classList.remove('hidden');
+        }
+
+        // Cargar alertas al iniciar la página
+        window.onload = () => {
+            cargarAlertasCiudadanas();
+            
+            // Opcional: Actualizar las alertas cada 10 segundos por si entran nuevas
+            setInterval(cargarAlertasCiudadanas, 10000); 
+        };
+    </script>
+</body>
+</html>

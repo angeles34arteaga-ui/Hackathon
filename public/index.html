@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Waste Riobamba</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .navbar-custom { background-color: #0f2027; }
+        .bg-gradient-verde { background: linear-gradient(135deg, #198754, #146c43); color: white; }
+        
+        /* Ajustes para que el carrusel ocupe buena parte de la pantalla */
+        .carousel-item {
+            height: 70vh;
+            min-height: 500px;
+            background-color: #333;
+        }
+        .carousel-item img {
+            object-fit: cover;
+            height: 100%;
+            width: 100%;
+            opacity: 0.6; /* Oscurece la foto para que se lea el texto */
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-success d-flex align-items-center" href="#" onclick="mostrarVista('inicio')">
+                <span class="fs-3 me-2">♻️</span> Smart Waste GADM-R
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="menuPrincipal">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link active" href="#" onclick="mostrarVista('inicio')">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#seccion-informacion" onclick="mostrarVista('inicio')">Información</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#seccion-calles" onclick="mostrarVista('inicio')">Zonas y Calles</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#seccion-educacion" onclick="mostrarVista('inicio')">Educación Ambiental</a></li>
+                </ul>
+                
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-light px-4 shadow-sm" onclick="mostrarVista('registro')">Registrarse</button>
+                    <button class="btn btn-success px-4 shadow-sm fw-bold" onclick="mostrarVista('login')">Iniciar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="vista-inicio">
+        
+        <div id="carruselPrincipal" class="carousel slide shadow-lg" data-bs-ride="carousel">
+            <div class="carousel-indicators">
+                <button type="button" data-bs-target="#carruselPrincipal" data-bs-slide-to="0" class="active"></button>
+                <button type="button" data-bs-target="#carruselPrincipal" data-bs-slide-to="1"></button>
+                <button type="button" data-bs-target="#carruselPrincipal" data-bs-slide-to="2"></button>
+            </div>
+            
+            <div class="carousel-inner bg-dark">
+                <div class="carousel-item active">
+                    <img src="img/foto-carrusel1.jpg" alt="Centro de Riobamba">
+                    <div class="carousel-caption d-none d-md-block mb-5 pb-5">
+                        <h1 class="display-3 fw-bold text-white shadow-lg">La Sultana Más Limpia</h1>
+                        <p class="lead fs-4">Sistema integral de recolección de residuos para Riobamba.</p>
+                        <button class="btn btn-success btn-lg mt-3 px-5 shadow" onclick="mostrarVista('registro')">Unirse a la red</button>
+                    </div>
+                </div>
+                <div class="carousel-item">
+                    <img src="img/foto-carrusel2.jpg" alt="Camiones Recolectores">
+                    <div class="carousel-caption d-none d-md-block mb-5 pb-5">
+                        <h1 class="display-3 fw-bold text-white shadow-lg">Rutas Optimizadas</h1>
+                        <p class="lead fs-4">Ahorramos tiempo y combustible usando Inteligencia Artificial.</p>
+                    </div>
+                </div>
+                <div class="carousel-item">
+                    <img src="img/foto-carrusel3.jpg" alt="Ciudadanos">
+                    <div class="carousel-caption d-none d-md-block mb-5 pb-5">
+                        <h1 class="display-3 fw-bold text-white shadow-lg">Reportes Ciudadanos</h1>
+                        <p class="lead fs-4">Tu participación es clave. Reporta y ubica contenedores en tiempo real.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="carousel-control-prev" type="button" data-bs-target="#carruselPrincipal" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carruselPrincipal" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
+        </div>
+
+        <div id="seccion-informacion" class="container py-5 my-5">
+            <div class="row align-items-center">
+                <div class="col-md-6 mb-4">
+                    <h2 class="fw-bold text-dark mb-4">Un Riobamba Inteligente y Sostenible</h2>
+                    <p class="text-muted lead">Smart Waste es una iniciativa tecnológica que transforma la manera en que el municipio gestiona los residuos sólidos. Mediante sensores y algoritmos predictivos, evitamos la acumulación en las calles y mejoramos la calidad de vida de los ciudadanos.</p>
+                    <ul class="list-unstyled mt-4">
+                        <li class="mb-3">✅ Monitoreo de contenedores 24/7</li>
+                        <li class="mb-3">✅ Reducción de huella de carbono del parque automotor</li>
+                        <li class="mb-3">✅ Atención rápida a puntos críticos</li>
+                    </ul>
+                </div>
+                <div class="col-md-6 text-center">
+                    <img src="img/info-riobamba.jpg" alt="Información Riobamba" class="img-fluid rounded-4 shadow-lg" style="max-height: 400px; object-fit: cover; width: 100%;">
+                </div>
+            </div>
+        </div>
+
+        <div id="seccion-calles" class="bg-light py-5 border-top border-bottom">
+            <div class="container py-4">
+                <div class="text-center mb-5">
+                    <h2 class="fw-bold text-dark">Zonas de Cobertura Inicial</h2>
+                    <p class="text-muted">El plan piloto está operando en los sectores más transitados de nuestra ciudad.</p>
+                </div>
+                <div class="row g-4 text-center">
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100 p-4">
+                            <h4 class="fw-bold text-success">Centro Histórico</h4>
+                            <p class="text-muted small">Calles Primera Constituyente, 10 de Agosto, Guayaquil, Olmedo. Cobertura total de ecotachos.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100 p-4">
+                            <h4 class="fw-bold text-success">Sector La Condamine</h4>
+                            <p class="text-muted small">Mercado La Condamine y calles aledañas. Recolección optimizada con alta prioridad por flujo comercial.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100 p-4">
+                            <h4 class="fw-bold text-success">Sector Politécnico</h4>
+                            <p class="text-muted small">Avenida Panamericana Sur, Vía a Guano. Zonas residenciales y estudiantiles.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="seccion-educacion" class="bg-gradient-verde py-5">
+            <div class="container py-5 text-center">
+                <h2 class="fw-bold mb-4 text-white">¿Sabías que el 60% de nuestra basura es reciclable?</h2>
+                <p class="lead mb-4 col-md-8 mx-auto text-light">Sé parte de la solución. Regístrate en nuestra plataforma, ubica el contenedor con más espacio y reporta zonas ilegales de descarga para mantener nuestro cantón limpio.</p>
+                <button class="btn btn-light btn-lg px-5 shadow fw-bold text-success" onclick="mostrarVista('registro')">Crear mi cuenta gratis</button>
+            </div>
+        </div>
+        
+        <footer class="bg-dark text-light py-4 text-center">
+            <div class="container">
+                <p class="mb-0">© 2026 Smart Waste Riobamba - GADM-R. Hackathon Project.</p>
+            </div>
+        </footer>
+    </div>
+
+
+    <div id="vista-login" class="d-none container mt-5 pt-5 pb-5">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card shadow-lg border-0 p-5 rounded-4">
+                    <div class="text-center mb-4">
+                        <h3 class="fw-bold text-dark">Acceso al Sistema</h3>
+                        <p class="text-muted small">Ingresa tus credenciales</p>
+                    </div>
+                    
+                    <label class="form-label fw-bold text-muted small">Selecciona tu Rol:</label>
+                    <select id="rolLogin" class="form-select mb-4 form-select-lg bg-light">
+                        <option value="ciudadano">🙋🏽‍♂️ Soy Ciudadano</option>
+                        <option value="conductor">🚛 Soy Conductor</option>
+                        <option value="admin">⚙️ Soy Administrador</option>
+                    </select>
+
+                    <div class="mb-3"><input type="email" class="form-control form-control-lg bg-light" placeholder="Correo Electrónico"></div>
+                    <div class="mb-4"><input type="password" class="form-control form-control-lg bg-light" placeholder="Contraseña"></div>
+                    
+                    <button class="btn btn-success btn-lg w-100 fw-bold shadow-sm" onclick="ejecutarLogin()">Ingresar</button>
+                    
+                    <div class="text-center mt-4">
+                        <button class="btn btn-link text-muted text-decoration-none" onclick="mostrarVista('registro')">¿No tienes cuenta? Regístrate aquí</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="vista-registro" class="d-none container mt-5 pt-4 pb-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-lg border-0 border-top border-4 border-success p-5 rounded-4">
+                    <div class="text-center mb-4">
+                        <h3 class="fw-bold text-dark">Crear Cuenta Nueva</h3>
+                        <p class="text-muted">Únete a la iniciativa Smart Waste</p>
+                    </div>
+                    
+                    <div class="btn-group w-100 mb-4 shadow-sm">
+                        <input type="radio" class="btn-check" name="tipoRegistro" id="regCiudadano" value="ciudadano" checked>
+                        <label class="btn btn-outline-success" for="regCiudadano">Ciudadano</label>
+                        
+                        <input type="radio" class="btn-check" name="tipoRegistro" id="regConductor" value="conductor">
+                        <label class="btn btn-outline-primary" for="regConductor">Conductor municipal</label>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-6 mb-3"><input type="text" class="form-control bg-light" placeholder="Nombres"></div>
+                        <div class="col-6 mb-3"><input type="text" class="form-control bg-light" placeholder="Apellidos"></div>
+                    </div>
+                    <div class="mb-3"><input type="email" class="form-control bg-light" placeholder="Correo Electrónico"></div>
+                    <div class="mb-4"><input type="password" class="form-control bg-light" placeholder="Contraseña (Min 8 caracteres)"></div>
+                    
+                    <button class="btn btn-success btn-lg w-100 fw-bold shadow-sm" onclick="alert('¡Registro exitoso! Ya puedes iniciar sesión.'); mostrarVista('login')">Completar Registro</button>
+                    
+                    <div class="text-center mt-4">
+                        <button class="btn btn-link text-muted text-decoration-none" onclick="mostrarVista('inicio')">Volver al inicio</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function mostrarVista(vistaId) {
+            document.getElementById('vista-inicio').classList.add('d-none');
+            document.getElementById('vista-login').classList.add('d-none');
+            document.getElementById('vista-registro').classList.add('d-none');
+            
+            document.getElementById(`vista-${vistaId}`).classList.remove('d-none');
+            
+            if(vistaId === 'inicio') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function ejecutarLogin() {
+            const rol = document.getElementById('rolLogin').value;
+            window.location.href = rol + '.html'; 
+        }
+
+        // NUEVO: Detectar si venimos de hacer "Cerrar sesión"
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.location.hash === '#login') {
+                mostrarVista('login');
+                // Limpiar el hash de la URL para que quede limpio
+                history.replaceState(null, null, ' ');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Clasificación IA - EcoCiudad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        #webcam { width: 100%; border-radius: 2rem; transform: scaleX(-1); border: 4px solid #334155; }
+        .counter-card { cursor: pointer; transition: all 0.3s ease; }
+        .counter-card:hover { transform: translateY(-5px); border-color: #3b82f6; }
+        .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px); }
+        
+        /* ESTILOS DE IMPRESIÓN PARA EL PDF GENERAL */
+        @media print {
+            .no-print, header, nav, #logDeteccion, #reloj, .counter-card, #btnContainer { display: none !important; }
+            .modal { position: absolute; left: 0; top: 0; width: 100%; background: white !important; color: black !important; display: block !important; padding: 0; }
+            .modal > div { border: none !important; box-shadow: none !important; background: white !important; color: black !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; }
+            canvas { max-width: 100% !important; height: auto !important; }
+            #tablaGeneral { color: black !important; border: 1px solid #ddd !important; }
+            #tablaGeneral div { border-bottom: 1px solid #ddd !important; }
+            h2, p { color: black !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white flex flex-col min-h-screen font-sans">
+
+    <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900 sticky top-0 z-[2000] no-print">
+        <div class="flex items-center gap-4">
+            <a href="admin.html" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg transition"><i class="fas fa-arrow-left"></i></a>
+            <h2 class="font-black text-xl tracking-tight uppercase">Control de <span class="text-blue-500">Residuos IA</span></h2>
+        </div>
+        <button onclick="abrirReporteGeneral()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-xs font-bold transition flex items-center shadow-lg">
+            <i class="fas fa-file-pdf mr-2"></i> REPORTE GENERAL DEL DÍA
+        </button>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-6 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 no-print">
+        <div class="lg:col-span-8 space-y-4">
+            <div class="relative bg-black rounded-[2.5rem] overflow-hidden border-2 border-slate-700 shadow-2xl">
+                <video id="webcam" autoplay playsinline></video>
+                <div id="reloj" class="absolute top-4 right-4 bg-blue-600 text-[10px] font-black px-3 py-1 rounded-full border border-blue-400">ESCANEANDO EN: 10S</div>
+                <div id="resultado" class="absolute bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur p-4 rounded-2xl border border-slate-700 text-sm">
+                    <span class="text-slate-500 italic">Esperando residuo...</span>
+                </div>
+            </div>
+            <div id="logDeteccion" class="bg-slate-800/30 p-4 rounded-2xl h-32 overflow-y-auto text-[10px] font-mono border border-slate-700 text-slate-400">
+                <p class="text-blue-500">> Gemini 3.1 Flash Lite Conectado [5001]</p>
+            </div>
+        </div>
+
+        <div class="lg:col-span-4 space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div onclick="abrirReporteEspecifico('plastico', 'Plástico', '#ef4444')" class="counter-card bg-slate-800/50 p-4 rounded-2xl border border-slate-700 text-center">
+                    <i class="fas fa-bottle-water text-red-500 text-xl mb-1"></i>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">Plástico</p>
+                    <p id="plastico" class="text-2xl font-black">0</p>
+                </div>
+                <div onclick="abrirReporteEspecifico('carton', 'Cartón', '#f97316')" class="counter-card bg-slate-800/50 p-4 rounded-2xl border border-slate-700 text-center">
+                    <i class="fas fa-box text-orange-500 text-xl mb-1"></i>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">Cartón</p>
+                    <p id="carton" class="text-2xl font-black">0</p>
+                </div>
+                <div onclick="abrirReporteEspecifico('vidrio', 'Vidrio', '#22c55e')" class="counter-card bg-slate-800/50 p-4 rounded-2xl border border-slate-700 text-center">
+                    <i class="fas fa-wine-glass text-green-500 text-xl mb-1"></i>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">Vidrio</p>
+                    <p id="vidrio" class="text-2xl font-black">0</p>
+                </div>
+                <div onclick="abrirReporteEspecifico('papel', 'Papel', '#3b82f6')" class="counter-card bg-slate-800/50 p-4 rounded-2xl border border-slate-700 text-center">
+                    <i class="fas fa-file-alt text-blue-400 text-xl mb-1"></i>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">Papel</p>
+                    <p id="papel" class="text-2xl font-black">0</p>
+                </div>
+                <div onclick="abrirReporteEspecifico('metal', 'Metal', '#94a3b8')" class="counter-card bg-slate-800/50 p-4 rounded-2xl border border-slate-700 text-center">
+                    <i class="fas fa-gear text-slate-400 text-xl mb-1"></i>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">Metal</p>
+                    <p id="metal" class="text-2xl font-black">0</p>
+                </div>
+                <div onclick="abrirReporteEspecifico('organico', 'Orgánico', '#10b981')" class="counter-card bg-slate-800/50 p-4 rounded-2xl border border-slate-700 text-center">
+                    <i class="fas fa-leaf text-emerald-500 text-xl mb-1"></i>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">Orgánico</p>
+                    <p id="organico" class="text-2xl font-black">0</p>
+                </div>
+            </div>
+            <div class="bg-blue-600 p-6 rounded-[2rem] text-center shadow-2xl border border-blue-400">
+                <p class="text-[10px] font-black uppercase opacity-60 mb-1">Total Hoy</p>
+                <p id="total" class="text-5xl font-black">0</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="modalGeneral" class="modal overflow-y-auto">
+        <div class="max-w-5xl mx-auto my-10 bg-slate-800 rounded-[3rem] p-10 border border-slate-700 shadow-2xl relative">
+            <button onclick="cerrarModal('modalGeneral')" class="absolute top-8 right-8 text-slate-500 hover:text-white transition text-2xl no-print"><i class="fas fa-times-circle"></i></button>
+            <div class="mb-8 border-b border-slate-700 pb-6">
+                <h2 class="text-3xl font-black uppercase italic">Reporte Consolidado de Residuos</h2>
+                <p id="fechaHoy" class="text-blue-400 font-mono text-sm uppercase mt-2"></p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div class="bg-slate-900/50 p-6 rounded-3xl border border-slate-700/50">
+                    <h3 class="text-center text-[10px] font-bold text-slate-500 mb-4 uppercase tracking-widest">Distribución de Materiales</h3>
+                    <canvas id="graficaBarrasGeneral"></canvas>
+                </div>
+                <div class="space-y-6">
+                    <div id="tablaGeneral" class="bg-slate-900/50 rounded-3xl border border-slate-700/50 p-4 space-y-2"></div>
+                    <button onclick="window.print()" class="w-full bg-emerald-500 text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest hover:bg-emerald-400 transition no-print shadow-lg">
+                        <i class="fas fa-file-pdf mr-2"></i> Descargar Informe PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalEspecifico" class="modal">
+        <div class="max-w-4xl mx-auto mt-20 bg-slate-800 border border-slate-700 rounded-[2.5rem] p-8 shadow-2xl relative">
+            <button onclick="cerrarModal('modalEspecifico')" class="absolute top-6 right-6 text-slate-500 hover:text-white transition text-2xl no-print"><i class="fas fa-times-circle"></i></button>
+            <h2 id="modalTitulo" class="text-2xl font-black uppercase mb-6">Tendencia</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2 bg-slate-900/50 p-6 rounded-3xl border border-slate-700/50">
+                    <canvas id="graficaLineal"></canvas>
+                </div>
+                <div class="flex flex-col justify-center gap-4">
+                    <div class="bg-slate-900/50 p-6 rounded-2xl text-center border border-slate-700/50">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase">Cantidad Hoy</p>
+                        <p id="valorActualModal" class="text-4xl font-black">0</p>
+                    </div>
+                    <button onclick="window.print()" class="w-full bg-slate-700 text-white font-bold py-4 rounded-xl text-[10px] uppercase tracking-widest no-print">
+                        <i class="fas fa-download mr-2"></i> Descargar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const resultadoDiv = document.getElementById('resultado');
+        let chartGeneral = null;
+        let chartLineal = null;
+        let countdown = 10;
+
+        navigator.mediaDevices.getUserMedia({ video: true }).then(s => video.srcObject = s);
+
+        async function autoDetect() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            try {
+                const resp = await fetch('http://localhost:5001/clasificar-camara', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ imagen_base64: canvas.toDataURL('image/jpeg') })
+                });
+                const data = await resp.json();
+                if(!data.error) {
+                    resultadoDiv.innerHTML = `✅ IA: <strong>${data.categoria_espanol}</strong> (${(data.confianza*100).toFixed(0)}%)`;
+                    refresh();
+                }
+            } catch (e) { console.error("Error servidor"); }
+        }
+
+        async function refresh() {
+            const resp = await fetch('http://localhost:5001/estadisticas');
+            const data = await resp.json();
+            const c = data.contadores;
+            const ids = ['plastico', 'carton', 'vidrio', 'papel', 'metal', 'organico'];
+            ids.forEach(id => {
+                if(document.getElementById(id)) document.getElementById(id).innerText = c[id] || 0;
+            });
+            document.getElementById('total').innerText = data.total;
+        }
+
+        async function abrirReporteGeneral() {
+            document.getElementById('modalGeneral').style.display = 'block';
+            document.getElementById('fechaHoy').innerText = "Generado el: " + new Date().toLocaleString();
+            
+            const resp = await fetch('http://localhost:5001/estadisticas');
+            const data = await resp.json();
+            const c = data.contadores;
+
+            const ctx = document.getElementById('graficaBarrasGeneral').getContext('2d');
+            if(chartGeneral) chartGeneral.destroy();
+            chartGeneral = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Plástico', 'Cartón', 'Vidrio', 'Papel', 'Metal', 'Orgánico'],
+                    datasets: [{
+                        label: 'Cantidades',
+                        data: [c.plastico, c.carton, c.vidrio, c.papel, c.metal, c.organico],
+                        backgroundColor: ['#ef4444', '#f97316', '#22c55e', '#3b82f6', '#94a3b8', '#10b981'],
+                        borderRadius: 12
+                    }]
+                },
+                options: { 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            const tabla = document.getElementById('tablaGeneral');
+            tabla.innerHTML = '';
+            for (const [cat, val] of Object.entries(c)) {
+                const porc = data.total > 0 ? ((val / data.total) * 100).toFixed(1) : 0;
+                tabla.innerHTML += `
+                    <div class="flex justify-between p-4 border-b border-slate-800 text-xs font-bold uppercase">
+                        <span class="text-slate-500">${cat}</span>
+                        <span class="text-blue-400">${val} Unid. (${porc}%)</span>
+                    </div>`;
+            }
+        }
+
+        function abrirReporteEspecifico(id, titulo, color) {
+            document.getElementById('modalEspecifico').style.display = 'block';
+            document.getElementById('modalTitulo').innerText = `Historial: ${titulo}`;
+            const valActual = parseInt(document.getElementById(id).innerText);
+            document.getElementById('valorActualModal').innerText = valActual;
+
+            const ctx = document.getElementById('graficaLineal').getContext('2d');
+            if(chartLineal) chartLineal.destroy();
+            chartLineal = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['L', 'M', 'X', 'J', 'V', 'S'],
+                    datasets: [{
+                        label: titulo,
+                        data: [10, 22, 15, 30, 18, valActual],
+                        borderColor: color,
+                        fill: false,
+                        tension: 0.4
+                    }]
+                }
+            });
+        }
+
+        function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        setInterval(() => {
+            countdown--;
+            document.getElementById('reloj').innerText = `ESCANEANDO EN: ${countdown}S`;
+            if(countdown <= 0) { autoDetect(); countdown = 10; }
+        }, 1000);
+
+        refresh();
+    </script>
+</body>
+</html>

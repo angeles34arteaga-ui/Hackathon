@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal del Ciudadano - Angeles</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8fafc; }
+        .custom-marker { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .bin-icon { font-size: 28px; transition: transform 0.2s; }
+        .bin-icon:hover { transform: scale(1.2); }
+        .fill-level { background: white; padding: 2px 8px; border-radius: 12px; margin-top: -8px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-size: 11px; font-weight: bold; }
+        .dropdown-menu { display: none; transform-origin: top right; transition: all 0.2s; }
+        .dropdown-menu.active { display: block; animation: slideIn 0.2s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="antialiased text-gray-800 flex flex-col min-h-screen">
+
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-[2000]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center cursor-pointer" onclick="location.reload()">
+                    <i class="fas fa-recycle text-green-600 text-2xl mr-3"></i>
+                    <span class="font-bold text-xl tracking-tight">Eco<span class="text-green-600">Ciudad</span></span>
+                </div>
+                
+                <div class="flex items-center space-x-4 relative">
+                    <button class="text-gray-400 hover:text-blue-600 transition p-2">
+                        <i class="fas fa-bell text-xl"></i>
+                    </button>
+                    
+                    <div class="relative">
+                        <button id="userMenuBtn" class="flex items-center space-x-2 focus:outline-none p-1 hover:bg-gray-50 rounded-lg transition">
+                            <img src="https://i.pravatar.cc/150?img=47" alt="Perfil" class="w-9 h-9 rounded-full border border-gray-200">
+                            <span class="hidden sm:block font-medium text-sm text-gray-700">Angeles</span>
+                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
+                        </button>
+
+                        <div id="dropdownMenu" class="dropdown-menu absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-[3000]">
+                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                <i class="fas fa-user-circle mr-3"></i> Mi Perfil
+                            </a>
+                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                <i class="fas fa-exchange-alt mr-3"></i> Cambiar cuenta
+                            </a>
+                            <div class="border-t border-gray-100 my-1"></div>
+                            <a href="index.html#login" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition font-medium">
+                                <i class="fas fa-sign-out-alt mr-3"></i> Cerrar sesión
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">¡Bienvenida, Angeles! 👋</h1>
+            <p id="locationStatus" class="text-gray-500 mt-1">Obteniendo tu ubicación para encontrar contenedores cercanos...</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <section class="lg:col-span-2 flex flex-col min-h-[500px]">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden relative">
+                    <div id="map" class="w-full h-full z-0"></div>
+                </div>
+            </section>
+
+            <section class="space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4"><i class="fas fa-camera text-blue-500 mr-2"></i> Reporte Ciudadano</h2>
+                    <button onclick="abrirModalNuevoReporte()" class="w-full border-2 border-dashed border-blue-200 bg-blue-50 hover:border-blue-500 rounded-xl p-6 flex flex-col items-center justify-center transition group">
+                        <i class="fas fa-cloud-upload-alt text-3xl text-blue-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="font-semibold text-blue-700 text-sm">Crear Nuevo Reporte</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div id="btn-mis-reportes" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center cursor-pointer hover:shadow-md transition">
+                        <i class="fas fa-history text-purple-500 text-xl mb-2"></i>
+                        <p class="text-xs font-bold">Mis Reportes</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center cursor-pointer hover:shadow-md transition">
+                        <i class="fas fa-map-signs text-orange-500 text-xl mb-2"></i>
+                        <p class="text-xs font-bold">Puntos Limpios</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div id="modal-crear-reporte" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[4000] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-camera text-blue-500 mr-2"></i> Nuevo Reporte</h3>
+                <button onclick="cerrarModal('modal-crear-reporte')" class="text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Sube una fotografía del problema</label>
+                    <input type="file" id="foto-upload" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-200 rounded-xl p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Comentario / Detalles</label>
+                    <textarea id="comentario-reporte" rows="3" class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="Ej: El contenedor está desbordado y la basura obstaculiza la vereda..."></textarea>
+                </div>
+                <button onclick="guardarReporteBD()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow">Enviar Reporte</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-reportes" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[4000] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-history text-purple-500 mr-2"></i> Mis Reportes Realizados</h3>
+                <button onclick="cerrarModal('modal-reportes')" class="text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div id="galeria-reportes" class="p-4 overflow-y-auto space-y-4 flex-1 bg-gray-50">
+                </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // UI & Menú
+        const menuBtn = document.getElementById('userMenuBtn');
+        const menu = document.getElementById('dropdownMenu');
+        menuBtn.addEventListener('click', (e) => { e.stopPropagation(); menu.classList.toggle('active'); });
+        document.addEventListener('click', () => menu.classList.remove('active'));
+
+        function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function abrirModalNuevoReporte() {
+            document.getElementById('foto-upload').value = '';
+            document.getElementById('comentario-reporte').value = '';
+            document.getElementById('modal-crear-reporte').classList.remove('hidden');
+        }
+
+        // --- MAPA Y GEOLOCALIZACIÓN DINÁMICA ---
+        let map = L.map('map', { zoomControl: false }).setView([-1.6709, -78.6471], 15); 
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+
+        const statusText = document.getElementById('locationStatus');
+
+        // 1. Array simulado de contenedores (puedes reemplazar esto con datos de tu base de datos)
+        const contenedores = [
+            { id: 1, lat: -1.6715, lng: -78.6485, nivel: 90, tipo: 'Desechos Generales' },
+            { id: 2, lat: -1.6690, lng: -78.6450, nivel: 35, tipo: 'Reciclaje' },
+            { id: 3, lat: -1.6730, lng: -78.6460, nivel: 65, tipo: 'Orgánico' },
+            { id: 4, lat: -1.6685, lng: -78.6490, nivel: 15, tipo: 'Papel y Cartón' },
+            { id: 5, lat: -1.6700, lng: -78.6430, nivel: 82, tipo: 'Desechos Generales' }
+        ];
+
+        // 2. Función para crear un icono visual dependiendo del porcentaje de llenado
+        function obtenerIconoContenedor(nivel, esMasCercano) {
+            let colorClass = 'text-green-500'; // Vacío
+            let bgClass = 'bg-green-100';
+
+            if (nivel >= 80) {
+                colorClass = 'text-red-500'; // Lleno
+                bgClass = 'bg-red-100';
+            } else if (nivel >= 50) {
+                colorClass = 'text-orange-500'; // Medio
+                bgClass = 'bg-orange-100';
+            }
+
+            // Efecto visual extra si es el contenedor más cercano
+            let pulseEffect = esMasCercano ? `<div class="absolute -inset-2 bg-blue-400 rounded-full opacity-40 animate-ping"></div>` : '';
+            let badgeCercano = esMasCercano ? `<div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md z-20">¡Más cercano!</div>` : '';
+
+            return L.divIcon({
+                className: 'custom-marker bg-transparent',
+                html: `
+                    <div class="relative flex flex-col items-center">
+                        ${pulseEffect}
+                        ${badgeCercano}
+                        <div class="bg-white p-2 rounded-full shadow-lg border-2 border-gray-200 relative z-10 transition hover:scale-110">
+                            <i class="fas fa-trash-alt ${colorClass} text-xl"></i>
+                        </div>
+                        <div class="mt-1 px-2 py-0.5 ${bgClass} ${colorClass} text-xs font-bold rounded shadow-sm border border-white relative z-10">
+                            ${nivel}%
+                        </div>
+                    </div>
+                `,
+                iconSize: [50, 70],
+                iconAnchor: [25, 35],
+                popupAnchor: [0, -35]
+            });
+        }
+
+        // 3. Función para procesar y dibujar los contenedores calculando la distancia
+        function cargarContenedores(userLat, userLng) {
+            let contenedorMasCercano = null;
+            let distanciaMinima = Infinity;
+
+            // Calcular qué contenedor está más cerca usando una función nativa de Leaflet
+            contenedores.forEach(cont => {
+                let latlng = L.latLng(cont.lat, cont.lng);
+                cont.distancia = map.distance([userLat, userLng], latlng);
+                
+                if (cont.distancia < distanciaMinima) {
+                    distanciaMinima = cont.distancia;
+                    contenedorMasCercano = cont;
+                }
+            });
+
+            // Dibujar los marcadores en el mapa
+            contenedores.forEach(cont => {
+                let esMasCercano = (cont.id === contenedorMasCercano.id);
+                let icono = obtenerIconoContenedor(cont.nivel, esMasCercano);
+
+                let popupContent = `
+                    <div class="text-center p-1 min-w-[120px]">
+                        <h4 class="font-bold text-gray-800 mb-1">${cont.tipo}</h4>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="bg-${cont.nivel >= 80 ? 'red' : cont.nivel >= 50 ? 'orange' : 'green'}-500 h-2 rounded-full" style="width: ${cont.nivel}%"></div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">Nivel: <b>${cont.nivel}%</b></p>
+                        <p class="text-xs text-blue-700 bg-blue-50 py-1.5 rounded-lg font-medium"><i class="fas fa-walking mr-1"></i> A ${Math.round(cont.distancia)} metros</p>
+                    </div>
+                `;
+
+                let marker = L.marker([cont.lat, cont.lng], { icon: icono })
+                    .bindPopup(popupContent)
+                    .addTo(map);
+
+                // Si es el más cercano, abrir su popup automáticamente
+                if (esMasCercano) {
+                    setTimeout(() => marker.openPopup(), 500);
+                }
+            });
+        }
+
+        // 4. Iniciar geolocalización al cargar
+        function inicializarUbicacion() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+
+                        // Actualizar texto de estado en la UI
+                        statusText.innerHTML = '<i class="fas fa-check-circle text-green-500 mr-1"></i> Ubicación obtenida. Contenedores cercanos cargados.';
+
+                        // Centrar mapa en el usuario
+                        map.setView([lat, lng], 16);
+
+                        // Crear marcador del usuario (punto azul parpadeante)
+                        L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'custom-marker bg-transparent',
+                                html: `<div class="relative flex justify-center items-center">
+                                          <div class="absolute w-8 h-8 bg-blue-500 rounded-full opacity-40 animate-ping"></div>
+                                          <div class="w-4 h-4 bg-blue-600 border-2 border-white rounded-full relative z-10 shadow-lg"></div>
+                                       </div>`,
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 16]
+                            })
+                        }).addTo(map).bindPopup("<b>¡Estás aquí!</b>");
+
+                        cargarContenedores(lat, lng);
+                    },
+                    function(error) {
+                        statusText.innerHTML = '<i class="fas fa-exclamation-triangle text-orange-500 mr-1"></i> No se pudo obtener tu ubicación. Usando zona por defecto.';
+                        cargarContenedores(-1.6709, -78.6471); // Coordenadas por defecto
+                    },
+                    { enableHighAccuracy: true } // Pedir máxima precisión al GPS
+                );
+            } else {
+                statusText.innerHTML = "Tu navegador no soporta geolocalización.";
+                cargarContenedores(-1.6709, -78.6471);
+            }
+        }
+
+        // Arrancar la lógica del mapa
+        inicializarUbicacion();
+
+        // --- LÓGICA DE REPORTES CON LOCALSTORAGE ---
+        // Almacenamiento local para simular la base de datos entre ciudadano y admin
+        
+        function guardarReporteBD() {
+            const fileInput = document.getElementById('foto-upload');
+            const comentario = document.getElementById('comentario-reporte').value;
+
+            if (fileInput.files.length === 0 || comentario.trim() === '') {
+                alert("Por favor, sube una foto y añade un comentario.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            // Convertimos la imagen a Base64 para guardarla en el navegador
+            reader.onload = function(e) {
+                const imgBase64 = e.target.result;
+                
+                const nuevoReporte = {
+                    id: 'R-' + Math.floor(1000 + Math.random() * 9000), // ID aleatorio
+                    fecha: new Date().toLocaleDateString('es-ES'),
+                    ciudadano: 'Angeles',
+                    ubicacion: 'Cerca de mi ubicación actual', // Simulamos la ubicación
+                    detalle: comentario,
+                    estado: 'Pendiente',
+                    imagen: imgBase64 // La foto guardada
+                };
+
+                // Recuperar reportes existentes, añadir el nuevo y guardar
+                let reportesDB = JSON.parse(localStorage.getItem('ecoCiudadReportes')) || [];
+                reportesDB.unshift(nuevoReporte); // Añadir al inicio
+                localStorage.setItem('ecoCiudadReportes', JSON.stringify(reportesDB));
+
+                alert("Reporte enviado con éxito al administrador.");
+                cerrarModal('modal-crear-reporte');
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        // Mostrar los reportes del ciudadano
+        document.getElementById('btn-mis-reportes').addEventListener('click', () => {
+            const galeria = document.getElementById('galeria-reportes');
+            galeria.innerHTML = ''; 
+            
+            let reportesDB = JSON.parse(localStorage.getItem('ecoCiudadReportes')) || [];
+            // Filtrar solo los de Ángeles (por si en un futuro hay más)
+            let misReportes = reportesDB.filter(r => r.ciudadano === 'Angeles');
+
+            if (misReportes.length === 0) {
+                galeria.innerHTML = `<div class="text-center text-gray-500 py-10">
+                    <i class="fas fa-folder-open text-5xl mb-4 text-gray-300"></i>
+                    <p>Aún no has enviado ningún reporte.</p>
+                </div>`;
+            } else {
+                misReportes.forEach(reporte => {
+                    let badgeClass = reporte.estado === 'Pendiente' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600';
+                    let iconClass = reporte.estado === 'Pendiente' ? 'fa-clock' : 'fa-check';
+
+                    galeria.innerHTML += `
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col sm:flex-row gap-4">
+                            <img src="${reporte.imagen}" class="w-full sm:w-32 h-32 object-cover rounded-lg border border-gray-100">
+                            <div class="flex-1 flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="font-bold text-gray-800 text-sm">Reporte ${reporte.id}</h4>
+                                        <span class="${badgeClass} text-xs font-bold px-2 py-1 rounded-full"><i class="fas ${iconClass} mr-1"></i>${reporte.estado}</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mb-2"><i class="fas fa-calendar-alt mr-1"></i> ${reporte.fecha} | <i class="fas fa-map-marker-alt mr-1 ml-2"></i> ${reporte.ubicacion}</p>
+                                    <p class="text-sm text-gray-700 bg-gray-50 p-2 rounded-lg italic">"${reporte.detalle}"</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('modal-reportes').classList.remove('hidden'); 
+        });
+    </script>
+</body>
+</html>
