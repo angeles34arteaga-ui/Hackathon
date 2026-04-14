@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Smart Waste Riobamba</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .dropdown-menu { display: none; transform-origin: top right; transition: all 0.2s; }
+        .dropdown-menu.active { display: block; animation: slideIn 0.2s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden font-sans">
+
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-[2000]">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
+            <i class="fas fa-city text-emerald-500 mr-3 text-xl"></i>
+            <h1 class="font-bold text-lg text-white tracking-tight">Eco<span class="text-emerald-500">Admin</span></h1>
+        </div>
+        <nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+            <button onclick="cambiarVista('vista-dashboard')" id="btn-dashboard" class="w-full flex items-center px-3 py-3 rounded-xl bg-emerald-600 text-white font-medium transition group">
+                <i class="fas fa-chart-pie w-6 text-center mr-2 group-hover:scale-110 transition"></i> Panel Principal
+            </button>
+            <button onclick="cambiarVista('vista-contenedores')" id="btn-contenedores" class="w-full flex items-center px-3 py-3 rounded-xl hover:bg-slate-800 hover:text-white font-medium transition group">
+                <i class="fas fa-trash-alt w-6 text-center mr-2 group-hover:scale-110 transition"></i> Contenedores
+            </button>
+            <button onclick="cambiarVista('vista-reportes')" id="btn-reportes" class="w-full flex items-center px-3 py-3 rounded-xl hover:bg-slate-800 hover:text-white font-medium transition group relative">
+                <i class="fas fa-bullhorn w-6 text-center mr-2 group-hover:scale-110 transition"></i> Reportes
+                <span id="badge-reportes" class="absolute right-3 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full" style="display:none;">0</span>
+            </button>
+            
+            <div class="pt-6 mt-6 border-t border-slate-800">
+                <a href="clasificar.html" class="w-full flex items-center px-3 py-3 rounded-xl border border-blue-500/30 text-blue-400 hover:bg-blue-600 hover:text-white font-medium transition">
+                    <i class="fas fa-robot w-6 text-center mr-2"></i> IA Clasificadora
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <header class="h-16 bg-white shadow-sm border-b border-slate-200 flex justify-between items-center px-6 z-[1000]">
+            <h2 id="titulo-seccion" class="text-xl font-bold text-slate-800">Panel de Monitoreo General</h2>
+            
+            <div class="flex items-center space-x-4 relative">
+                <div class="relative">
+                    <button id="adminMenuBtn" class="flex items-center space-x-3 focus:outline-none p-1 hover:bg-slate-50 rounded-lg transition">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-sm font-bold text-slate-800 leading-tight">Angeles</p>
+                            <p class="text-xs text-emerald-600 font-medium">Administrador</p>
+                        </div>
+                        <img src="https://i.pravatar.cc/150?img=33" alt="Perfil" class="w-10 h-10 rounded-full border-2 border-emerald-500">
+                    </button>
+
+                    <div id="dropdownAdmin" class="dropdown-menu absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-[3000]">
+                        <a href="index.html#login" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition font-bold">
+                            <i class="fas fa-sign-out-alt mr-3"></i> Cerrar sesión
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6 relative">
+            
+            <div id="vista-dashboard" class="admin-view space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div onclick="abrirModalDetalle('Crítico')" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-red-500 cursor-pointer hover:shadow-md hover:-translate-y-1 transition transform">
+                        <div class="flex justify-between items-start">
+                            <div><p class="text-xs font-bold text-slate-500 uppercase">Estado Crítico (>80%)</p><p class="text-3xl font-black" id="count-criticos">0</p></div>
+                            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500"><i class="fas fa-exclamation-triangle"></i></div>
+                        </div>
+                    </div>
+                    <div onclick="abrirModalDetalle('Medio')" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-orange-500 cursor-pointer hover:shadow-md hover:-translate-y-1 transition transform">
+                        <div class="flex justify-between items-start">
+                            <div><p class="text-xs font-bold text-slate-500 uppercase">Estado Medio (50%-79%)</p><p class="text-3xl font-black" id="count-medios">0</p></div>
+                            <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-500"><i class="fas fa-battery-half"></i></div>
+                        </div>
+                    </div>
+                    <div onclick="abrirModalDetalle('Óptimo')" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-500 cursor-pointer hover:shadow-md hover:-translate-y-1 transition transform">
+                        <div class="flex justify-between items-start">
+                            <div><p class="text-xs font-bold text-slate-500 uppercase">Estado Óptimo (<50%)</p><p class="text-3xl font-black" id="count-optimos">0</p></div>
+                            <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500"><i class="fas fa-check-circle"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col" style="height: 500px;">
+                    <div id="map" class="w-full flex-1 z-0"></div>
+                </div>
+            </div>
+
+            <div id="vista-contenedores" class="admin-view hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <p class="text-slate-500">Administra los puntos de recolección de la ciudad.</p>
+                    <button onclick="abrirModalFormContenedor()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl shadow transition flex items-center">
+                        <i class="fas fa-plus mr-2"></i> Nuevo Contenedor
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-4">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold">
+                                <th class="p-4">ID</th>
+                                <th class="p-4">Ubicación</th>
+                                <th class="p-4">Coordenadas</th>
+                                <th class="p-4 text-center">Nivel</th>
+                                <th class="p-4 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-contenedores" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="vista-reportes" class="admin-view hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <p class="text-slate-500">Seguimiento de incidencias reportadas por la comunidad.</p>
+                    <button onclick="renderizarTablaReportes()" class="bg-white border border-slate-300 text-slate-700 px-3 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-slate-50"><i class="fas fa-sync-alt mr-1"></i> Refrescar</button>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold">
+                                    <th class="p-4 w-24">Foto</th>
+                                    <th class="p-4">Ciudadano / Fecha</th>
+                                    <th class="p-4">Problema Reportado</th>
+                                    <th class="p-4 text-center">Estado</th>
+                                    <th class="p-4 text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-reportes" class="divide-y divide-slate-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-form-contenedor" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[4000] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="text-lg font-bold text-slate-800"><i class="fas fa-trash-alt text-emerald-500 mr-2"></i> Nuevo Contenedor</h3>
+                <button onclick="cerrarModal('modal-form-contenedor')" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">ID Contenedor</label>
+                    <input type="text" id="input-id" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Ej: C-105">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ubicación (Calle/Sector)</label>
+                    <input type="text" id="input-calle" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Ej: Calle Guayaquil y 10 de Agosto">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Latitud</label>
+                        <input type="number" step="any" id="input-lat" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="-1.6709">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Longitud</label>
+                        <input type="number" step="any" id="input-lng" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="-78.6471">
+                    </div>
+                </div>
+                <button onclick="guardarContenedor()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl mt-4 transition shadow-md">Guardar Contenedor</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-detalle-estado" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[4000] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform transition-all">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 id="modal-detalle-titulo" class="text-lg font-bold text-slate-800">Contenedores</h3>
+                <button onclick="cerrarModal('modal-detalle-estado')" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 max-h-[60vh] overflow-y-auto"><ul id="lista-calles-detalle" class="space-y-3"></ul></div>
+        </div>
+    </div>
+
+    <div id="modal-foto-reporte" class="hidden fixed inset-0 bg-black/90 z-[5000] flex items-center justify-center p-4">
+        <button onclick="cerrarModal('modal-foto-reporte')" class="absolute top-6 right-6 text-white hover:text-red-500 transition text-3xl"><i class="fas fa-times"></i></button>
+        <img id="foto-ampliada" src="" class="max-w-full max-h-[90vh] rounded-lg shadow-2xl border border-gray-700">
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // --- BASE DE DATOS SIMULADA MAPA/CONTENEDORES ---
+        let contenedores = [
+            { id: 'C-001', lat: -1.6700, lng: -78.6470, fill: 88, calle: "Av. Unidad Nacional" },
+            { id: 'C-002', lat: -1.6750, lng: -78.6400, fill: 65, calle: "Calle 10 de Agosto" },
+            { id: 'C-003', lat: -1.6720, lng: -78.6420, fill: 15, calle: "Primera Constituyente" }
+        ];
+
+        // LÓGICA DE INTERFAZ Y NAVEGACIÓN
+        const menuBtn = document.getElementById('adminMenuBtn');
+        const menuDrop = document.getElementById('dropdownAdmin');
+        menuBtn.addEventListener('click', (e) => { e.stopPropagation(); menuDrop.classList.toggle('active'); });
+        document.addEventListener('click', () => menuDrop.classList.remove('active'));
+
+        let mapaInstancia = null;
+
+        function cambiarVista(vistaId) {
+            document.querySelectorAll('.admin-view').forEach(el => el.classList.add('hidden'));
+            document.getElementById(vistaId).classList.remove('hidden');
+            
+            const botones = ['btn-dashboard', 'btn-contenedores', 'btn-reportes'];
+            botones.forEach(btn => {
+                const el = document.getElementById(btn);
+                el.classList.remove('bg-emerald-600', 'text-white');
+                el.classList.add('hover:bg-slate-800', 'hover:text-white', 'text-slate-300');
+            });
+            
+            const btnActivo = document.getElementById('btn-' + vistaId.split('-')[1]);
+            btnActivo.classList.remove('hover:bg-slate-800', 'hover:text-white', 'text-slate-300');
+            btnActivo.classList.add('bg-emerald-600', 'text-white');
+
+            if (vistaId === 'vista-dashboard') {
+                actualizarEstadisticas();
+                setTimeout(() => { if(mapaInstancia) mapaInstancia.invalidateSize(); }, 100);
+            } else if (vistaId === 'vista-contenedores') {
+                renderizarTablaContenedores();
+            } else if (vistaId === 'vista-reportes') {
+                renderizarTablaReportes();
+            }
+        }
+
+        // --- MAPA Y DASHBOARD ---
+        function inicializarMapa() {
+            mapaInstancia = L.map('map').setView([-1.6709, -78.6471], 14);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(mapaInstancia);
+            renderizarMapa();
+        }
+
+        function renderizarMapa() {
+            // Borra marcadores antiguos
+            mapaInstancia.eachLayer(layer => { if (layer instanceof L.Marker) mapaInstancia.removeLayer(layer); });
+            // Pinta los nuevos
+            contenedores.forEach(bin => {
+                let color = bin.fill >= 80 ? '#ef4444' : (bin.fill >= 50 ? '#f97316' : '#10b981');
+                const icon = L.divIcon({
+                    className: 'custom-marker', 
+                    html: `<div style="text-align:center;"><i class="fas fa-trash text-2xl" style="color:${color}; text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></i><div style="background:white; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:10px; border:1px solid #ccc; margin-top:2px;">${bin.fill}%</div></div>`, 
+                    iconSize: [40, 45],
+                    iconAnchor: [20, 45]
+                });
+                L.marker([bin.lat, bin.lng], {icon}).addTo(mapaInstancia).bindPopup(`<strong class="text-slate-800">${bin.calle}</strong><br><span class="text-xs text-slate-500">ID: ${bin.id} | Llenado: <b style="color:${color}">${bin.fill}%</b></span>`);
+            });
+            actualizarEstadisticas();
+        }
+
+        function actualizarEstadisticas() {
+            let crit = 0, med = 0, opt = 0;
+            contenedores.forEach(c => {
+                if (c.fill >= 80) crit++;
+                else if (c.fill >= 50) med++;
+                else opt++;
+            });
+            document.getElementById('count-criticos').innerText = crit;
+            document.getElementById('count-medios').innerText = med;
+            document.getElementById('count-optimos').innerText = opt;
+        }
+
+        function abrirModalDetalle(estado) {
+            const modal = document.getElementById('modal-detalle-estado');
+            const lista = document.getElementById('lista-calles-detalle');
+            const titulo = document.getElementById('modal-detalle-titulo');
+            
+            titulo.innerHTML = `Contenedores: <span class="${estado==='Crítico'?'text-red-500':(estado==='Medio'?'text-orange-500':'text-emerald-500')}">Estado ${estado}</span>`;
+            lista.innerHTML = '';
+
+            const filtrados = contenedores.filter(c => {
+                if (estado === 'Crítico') return c.fill >= 80;
+                if (estado === 'Medio') return c.fill >= 50 && c.fill < 80;
+                if (estado === 'Óptimo') return c.fill < 50;
+            });
+
+            if(filtrados.length === 0) {
+                lista.innerHTML = '<li class="text-slate-500 text-center py-4">No hay contenedores en este estado.</li>';
+            } else {
+                filtrados.forEach(c => {
+                    let badgeClass = estado==='Crítico'?'bg-red-100 text-red-600':(estado==='Medio'?'bg-orange-100 text-orange-600':'bg-emerald-100 text-emerald-600');
+                    lista.innerHTML += `
+                        <li class="p-3 border border-slate-100 rounded-lg flex justify-between items-center hover:bg-slate-50 transition">
+                            <div>
+                                <p class="font-bold text-slate-700 text-sm"><i class="fas fa-map-marker-alt text-slate-400 mr-2"></i>${c.calle}</p>
+                                <p class="text-xs text-slate-500 font-mono mt-1">ID: ${c.id}</p>
+                            </div>
+                            <span class="${badgeClass} px-3 py-1 rounded-full text-xs font-bold">${c.fill}%</span>
+                        </li>`;
+                });
+            }
+            modal.classList.remove('hidden');
+        }
+
+        // --- GESTIÓN DE CONTENEDORES (CRUD) ---
+        function renderizarTablaContenedores() {
+            const tbody = document.getElementById('tabla-contenedores');
+            tbody.innerHTML = '';
+            
+            if (contenedores.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400">No hay contenedores registrados.</td></tr>';
+                return;
+            }
+
+            contenedores.forEach((c, index) => {
+                let badgeColor = c.fill >= 80 ? 'bg-red-100 text-red-600' : (c.fill >= 50 ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600');
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="p-4 font-mono font-bold text-slate-700">${c.id}</td>
+                        <td class="p-4 font-medium text-slate-800">${c.calle}</td>
+                        <td class="p-4 text-xs text-slate-500">${c.lat}, ${c.lng}</td>
+                        <td class="p-4 text-center"><span class="${badgeColor} px-2 py-1 rounded-full text-xs font-bold">${c.fill}%</span></td>
+                        <td class="p-4 text-center">
+                            <button onclick="eliminarContenedor(${index})" class="text-red-400 hover:text-red-600 transition p-2 bg-red-50 hover:bg-red-100 rounded-lg" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function abrirModalFormContenedor() {
+            document.getElementById('input-id').value = '';
+            document.getElementById('input-calle').value = '';
+            document.getElementById('input-lat').value = '';
+            document.getElementById('input-lng').value = '';
+            document.getElementById('modal-form-contenedor').classList.remove('hidden');
+        }
+
+        function guardarContenedor() {
+            const id = document.getElementById('input-id').value.trim();
+            const calle = document.getElementById('input-calle').value.trim();
+            const lat = parseFloat(document.getElementById('input-lat').value);
+            const lng = parseFloat(document.getElementById('input-lng').value);
+
+            if(id && calle && !isNaN(lat) && !isNaN(lng)) {
+                // Agregar al array
+                contenedores.push({ id, calle, lat, lng, fill: 0 }); // Todo contenedor nuevo empieza en 0%
+                
+                cerrarModal('modal-form-contenedor');
+                renderizarTablaContenedores(); // Actualizar tabla
+                renderizarMapa(); // Actualizar mapa y contadores
+            } else {
+                alert("Por favor, completa todos los campos correctamente.");
+            }
+        }
+
+        function eliminarContenedor(index) {
+            if(confirm(`¿Estás seguro de eliminar el contenedor ${contenedores[index].id}?`)) {
+                contenedores.splice(index, 1); // Quitar del array
+                renderizarTablaContenedores(); // Actualizar tabla
+                renderizarMapa(); // Actualizar mapa y contadores
+            }
+        }
+
+        // --- GESTIÓN DE REPORTES CON LOCALSTORAGE ---
+        function obtenerReportesBD() { return JSON.parse(localStorage.getItem('ecoCiudadReportes')) || []; }
+
+        function renderizarTablaReportes() {
+            const tbody = document.getElementById('tabla-reportes');
+            tbody.innerHTML = '';
+            
+            let reportes = obtenerReportesBD();
+            const pendientes = reportes.filter(r => r.estado === 'Pendiente').length;
+            document.getElementById('badge-reportes').innerText = pendientes;
+            document.getElementById('badge-reportes').style.display = pendientes > 0 ? 'block' : 'none';
+
+            if (reportes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400">No hay reportes de los ciudadanos aún.</td></tr>';
+                return;
+            }
+
+            reportes.forEach((r, index) => {
+                let isPendiente = r.estado === 'Pendiente';
+                let statusBadge = isPendiente ? 
+                    '<span class="bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-xs font-bold"><i class="fas fa-clock mr-1"></i>Pendiente</span>' : 
+                    '<span class="bg-emerald-100 text-emerald-600 px-2 py-1 rounded-full text-xs font-bold"><i class="fas fa-check mr-1"></i>Resuelto</span>';
+                
+                let actionBtn = isPendiente ? 
+                    `<button onclick="resolverReporte('${r.id}')" class="bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-600 hover:text-white px-3 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap shadow-sm">Marcar Resuelto</button>` : 
+                    `<span class="text-slate-400 text-xs font-medium bg-slate-100 px-2 py-1 rounded">Ya resuelto</span>`;
+
+                let imgTag = r.imagen ? 
+                    `<img src="${r.imagen}" onclick="ampliarFoto('${r.imagen}')" class="w-16 h-16 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition" title="Ver foto">` : 
+                    `<div class="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-300"><i class="fas fa-image"></i></div>`;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="p-4">${imgTag}</td>
+                        <td class="p-4">
+                            <p class="font-bold text-slate-800">${r.ciudadano}</p>
+                            <p class="text-xs text-slate-500"><i class="fas fa-calendar-alt mr-1"></i>${r.fecha}</p>
+                            <p class="text-xs text-slate-500 mt-1"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i>${r.ubicacion}</p>
+                        </td>
+                        <td class="p-4 text-slate-700 text-sm italic">"${r.detalle}"</td>
+                        <td class="p-4 text-center">${statusBadge}</td>
+                        <td class="p-4 text-center">${actionBtn}</td>
+                    </tr>`;
+            });
+        }
+
+        function ampliarFoto(imgSrc) {
+            document.getElementById('foto-ampliada').src = imgSrc;
+            document.getElementById('modal-foto-reporte').classList.remove('hidden');
+        }
+
+        function resolverReporte(idReporte) {
+            if(confirm("¿Confirmas que este problema ha sido solucionado por los recolectores?")) {
+                let reportes = obtenerReportesBD();
+                for(let i = 0; i < reportes.length; i++) {
+                    if(reportes[i].id === idReporte) {
+                        reportes[i].estado = 'Resuelto';
+                        break;
+                    }
+                }
+                localStorage.setItem('ecoCiudadReportes', JSON.stringify(reportes));
+                renderizarTablaReportes();
+            }
+        }
+
+        function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // Inicializar
+        window.onload = () => {
+            inicializarMapa();
+            cambiarVista('vista-dashboard'); 
+        };
+    </script>
+</body>
+</html>
